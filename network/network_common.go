@@ -14,8 +14,52 @@ func (self *Network) Name() string {
 }
 
 func (self *Network) Collect() (result interface{}, err error) {
-	result, err = getNetworkInfo()
+	// result, err = getNetworkInfo()
+	result, err = getMultiNetworkInfo()
 	return
+}
+
+func getMultiNetworkInfo() (map[string]map[string]string, error) {
+	networkInfo := make(map[string]map[string]string)
+	ifaces, err := net.Interfaces()
+
+	if err != nil {
+		return nil, err
+	}
+
+	for _, iface := range ifaces {
+		if iface.Flags&net.FlagUp == 0 || iface.Flags&net.FlagLoopback != 0 {
+			// interface down or loopback interface
+			continue
+		}
+		addrs, err := iface.Addrs()
+		if err != nil {
+			return nil, err
+		}
+		for _, addr := range addrs {
+			ip, network, _ := net.ParseCIDR(addr.String())
+			if ip == nil || ip.IsLoopback() {
+				continue
+			}
+			_, ok := networkInfo[iface.Name]
+			if !ok {
+				networkInfo[iface.Name] = make(map[string]string)
+			}
+			if ip.To4() == nil {
+				networkInfo[iface.Name]["ipv6"] = ip.String()
+			} else {
+				networkInfo[iface.Name]["ipv4"] = ip.String()
+			}
+			if len(iface.HardwareAddr.String()) > 0 {
+				networkInfo[iface.Name]["macaddress"] = iface.HardwareAddr.String()
+			}
+			networkInfo[iface.Name]["network"] = network.String()
+		}
+	}
+	if len(networkInfo) > 0 {
+		return networkInfo, nil
+	}
+	return nil, errors.New("not connected to the network")
 }
 
 type Ipv6Address struct{}
