@@ -47,13 +47,14 @@ func getMultiNetworkInfo() (map[string]map[string]string, error) {
 			}
 			if ip.To4() == nil {
 				networkInfo[iface.Name]["ipv6"] = ip.String()
+				networkInfo[iface.Name]["ipv6-network"] = network.String()
 			} else {
 				networkInfo[iface.Name]["ipv4"] = ip.String()
+				networkInfo[iface.Name]["ipv4-network"] = network.String()
 			}
 			if len(iface.HardwareAddr.String()) > 0 {
 				networkInfo[iface.Name]["macaddress"] = iface.HardwareAddr.String()
 			}
-			networkInfo[iface.Name]["network"] = network.String()
 		}
 	}
 	if len(networkInfo) > 0 {
